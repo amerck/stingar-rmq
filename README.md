@@ -10,7 +10,7 @@ Clone this repository to your local system.
 Run the following command:
 
 ```
-docker-compose up mongodb redis apiarist chnserver
+docker-compose up mongodb redis rabbitmq apiarist chnserver
 ```
 
 Finally run the following command:
