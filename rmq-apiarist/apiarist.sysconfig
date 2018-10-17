@@ -1,0 +1,9 @@
+MONGODB_HOST=mongodb
+MONGODB_PORT=27017
+MONGODB_DATABASE=apiarist
+
+AMQP_HOST=rabbitmq
+AMQP_USER=rabbitmq
+AMQP_PASS=rabbitmq
+
+DEBUG=true

@@ -1,0 +1,14 @@
+---
+  pkgs_osspec:
+    - libmpfr-dev
+    - libssl-dev
+    - libmpc-dev
+    - libffi-dev
+    - build-essential
+    - libpython-dev
+    - python2.7-minimal
+    - python-pip
+    - authbind
+    - runit
+
+  sysconfig_dir: /etc/default

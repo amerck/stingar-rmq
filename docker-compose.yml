@@ -1,0 +1,53 @@
+version: '2'
+services:
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    hostname: "rabbitmq"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+      RABBITMQ_DEFAULT_VHOST: "/"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+  mongodb:
+    image: stingar/mongodb:latest
+    volumes:
+      - ./storage/mongodb:/var/lib/mongo:z
+  redis:
+    image: stingar/redis:latest
+    volumes:
+      - ./storage/redis:/var/lib/redis:z
+  apiarist:
+    build:
+      context: ./rmq-apiarist
+      dockerfile: Dockerfile
+    image: rmq-apiarist:centos
+    links:
+      - rabbitmq:rabbitmq
+      - mongodb:mongodb
+  chnserver:
+    build:
+      context: ./rmq-chn
+      dockerfile: Dockerfile-centos
+    image: rmq-chn:centos
+    links:
+      - mongodb:mongodb
+      - redis:redis
+    ports:
+      - "80:80"
+  cowrie:
+    build:
+      context: ./rmq-cowrie
+      dockerfile: Dockerfile-ubuntu
+    image: rmq-cowrie:ubuntu
+    volumes:
+      - ./cowrie.sysconfig:/etc/sysconfig/cowrie
+      - ./cowrie:/etc/cowrie
+    links:
+      - rabbitmq:rabbitmq
+      - chnserver:chnserver
+    ports:
+      - "2222:2222"
+      - "2223:2223"

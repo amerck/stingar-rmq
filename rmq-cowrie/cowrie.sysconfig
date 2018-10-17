@@ -1,0 +1,35 @@
+# This file is read from /etc/sysconfig/cowrie or /etc/default/cowrie
+# depending on the base distro
+#
+# This can be modified to change the default setup of the cowrie unattended installation
+
+DEBUG=false
+
+# CHN Server api to register to
+CHN_SERVER="http://chnserver"
+
+
+# AMQP Server Information
+QUEUE_SERVER="rabbitmq"
+QUEUE_PORT=5672
+QUEUE_USER="rabbitmq"
+QUEUE_PASS="rabbitmq"
+QUEUE_EXCHANGE="honeypots"
+
+
+
+# Registration information file
+# If running in a container, this needs to persist
+# COWRIE_JSON="/etc/cowrie/cowrie.json
+
+# SSH Listen Port
+# Can be set to 22 for deployments on real servers
+# or left at 2222 and have the port mapped if deployed
+# in a container
+SSH_LISTEN_PORT=2222
+
+# Telnet Listen Port
+# Can be set to 23 for deployments on real servers
+# or left at 2223 and have the port mapped if deployed
+# in a container
+TELNET_LISTEN_PORT=2223

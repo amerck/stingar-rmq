@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+
+trap "exit 130" SIGINT
+trap "exit 137" SIGKILL
+trap "exit 143" SIGTERM
+
+PIDFILE=/var/run/nginx.pid
+
+# Should we be doing this this way?
+# What should we do to cleanup in a container?
+if [[ -f $PIDFILE ]]
+then
+  rm $PIDFILE
+fi
+
+# In case the log dir is not there
+mkdir -p /var/log/nginx
+touch /var/log/nginx/error.log
+
+/usr/sbin/nginx -t
+exec /usr/sbin/nginx

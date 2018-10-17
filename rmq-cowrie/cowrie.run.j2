@@ -1,0 +1,136 @@
+#!/bin/bash
+
+trap "exit 130" SIGINT
+trap "exit 137" SIGKILL
+trap "exit 143" SIGTERM
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+COWRIE_JSON='/etc/cowrie/cowrie.json'
+
+register () {
+  local chnserver="${1:-localhost}"
+  local json="${2:-cowrie}"
+  local hostname="$(hostname -f)"
+  local ip_addr="127.0.0.1"
+  local honeypot="cowrie"
+  local reg_flag="${3}"
+  local reg_host="${4}"
+  local reg_port="${5}"
+  local amqp_user="${6}"
+  local amqp_pass="${7}"
+
+  python {{cowrie_dir}}/../register_client.py --name ${hostname}-${honeypot} \
+                            --hostname ${hostname} \
+                            --honeypot ${honeypot} \
+                            --ip_addr ${ip_addr} \
+                            ${reg_flag} \
+                            --reghost ${reghost} \
+                            --regport ${regport} \
+                            --amqp_user ${amqp_user} \
+                            --amqp_pass ${amqp_pass} > ${json}
+
+}
+
+setup_cowrie_conf_amqp () {
+  local server=${1:-}
+  local user=${2:-}
+  local pass=${3:-}
+  local exchange=${4:-}
+  local uid=${5:-}
+  local secret=${6:-}
+  local ssh_port=${7:-2222}
+  local telnet_port=${8:-2223}
+
+  pushd /opt/cowrie
+  cp cowrie.cfg.dist cowrie.cfg
+
+  sed -i "s/hostname = svr04/hostname = server/g" cowrie.cfg
+  sed -i "s/listen_endpoints = tcp:2222:interface=0.0.0.0/listen_endpoints = tcp:${ssh_port}:interface=0.0.0.0/g" cowrie.cfg
+  sed -i "s/listen_endpoints = tcp:2223:interface=0.0.0.0/listen_endpoints = tcp:${telnet_port}:interface=0.0.0.0/g" cowrie.cfg
+  perl -p -000 -i -e  "s/# Enable Telnet support, disabled by default\s+enabled = false/# Enable Telnet support, disabled by default\nenabled = true/g" cowrie.cfg
+  sed -i "s/version = SSH-2.0-OpenSSH_6.0p1 Debian-4+deb7u2/version = SSH-2.0-OpenSSH_6.7p1 Ubuntu-5ubuntu1.3/g" cowrie.cfg
+
+  echo -e "\n\n[output_stingaramqp]" >> cowrie.cfg
+  echo "enabled=true" >> cowrie.cfg
+  echo "server=${server}" >> cowrie.cfg
+  echo "username=${user}" >> cowrie.cfg
+  echo "password=${pass}" >> cowrie.cfg
+  echo "exchange=${exchange}" >> cowrie.cfg
+  echo "uid=${uid}" >> cowrie.cfg
+  echo "secret=${secret}" >> cowrie.cfg
+  popd
+
+}
+
+
+main () {
+  source {{ sysconfig_dir }}/cowrie
+
+  if [[ ${DEBUG} == "true" ]]
+  then
+    set -o xtrace
+  fi
+
+  local chn_server=${CHN_SERVER}
+
+  local queue_server=${QUEUE_SERVER:-localhost}
+  local queue_user=${QUEUE_USER}
+  local queue_pass=${QUEUE_PASS}
+  local queue_exchange=${QUEUE_EXCHANGE}
+
+  local json=${COWRIE_JSON:-cowrie.json}
+  local ssh_port=${SSH_LISTEN_PORT:-2222}
+  local telnet_port=${TELNET_LISTEN_PORT:-2223}
+
+  local reg_flag='--rabbitmq'
+  local reghost=${QUEUE_SERVER}
+  local regport=${QUEUE_PORT}
+
+  local debug=${DEBUG:-false}
+
+  # If it doesn't exist or is empty
+  if [[ ! -f ${json}  ]] || [[ ! -s ${json} ]]
+  then
+    register ${chn_server} ${json} ${reg_flag} ${reghost} ${regport} ${queue_user} ${queue_pass}
+
+    return=$?
+
+    if [[ $return -ne 0 ]]
+    then
+      echo "Failed to register with ${chn_server}"
+      exit 1
+    fi
+  fi
+
+  local uuid=$(python -c "import json;obj=json.load(file('${json}'));print obj['uuid']")
+
+  if [ -z "$uuid" ]
+  then
+    echo "Could not create sensor using name \"$(hostname -f)\"."
+    exit 1
+  else
+    echo "Created sensor: " $uuid
+  fi
+
+#   local feeds_server=$(echo $feeds_server | sed 's#^http://##; s#^https://##; s#/.*$##; s/:.*$//')
+  local uid=$(python -c "import json;obj=json.load(file('${json}'));print obj['identifier']")
+  local secret=$(python -c "import json;obj=json.load(file('${json}'));print obj['secret']")
+
+
+  setup_cowrie_conf_amqp ${queue_server} \
+                         ${queue_user} \
+                         ${queue_pass} \
+                         ${queue_exchange} \
+                         ${uid} \
+                         ${secret} \
+                         ${ssh_port} \
+                         ${telnet_port} \
+                         ${debug}
+
+  exec su - cowrie -c "/opt/cowrie/bin/cowrie start"
+}
+
+main "$@"

@@ -1,0 +1,20 @@
+---
+  pkgs:
+    - git
+    - jq
+    - python-virtualenv
+
+  cowrie_repo: http://github.com/micheloosterhof/cowrie
+
+  cowrie_version: v1.3.0
+
+  pip_executable: pip
+
+  cowrie_pip_pkgs:
+    - pika
+    - requests
+
+  cowrie_dir: /opt/cowrie
+  cowrie_user: cowrie
+
+  runit_service_dir: /etc/service/cowrie
